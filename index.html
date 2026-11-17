@@ -8,13 +8,14 @@
       content="A simple QuickNotes API client for creating, loading, and deleting notes."
     />
     <title>QuickNotes API Client</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="style.css" />
     <script src="api.js" defer></script>
   </head>
   <body>
     <header class="site-header">
       <div class="header-content">
-        <p class="eyebrow">A LITTLE SPACE FOR YOUR IDEAS</p>
+        <p class="eyebrow">A little space for your ideas</p>
         <h1>QuickNotes</h1>
         <p class="tagline">A note-taking client connected to a practice API.</p>
       </div>
@@ -23,7 +24,7 @@
     <main>
       <section class="panel" aria-labelledby="add-heading">
         <div class="section-heading">
-          <p class="section-index">01 / CAPTURE</p>
+          <p class="section-index">01 / Capture</p>
           <h2 id="add-heading">Add a note</h2>
         </div>
         <form id="note-form">
@@ -49,13 +50,13 @@
       <section class="panel" aria-labelledby="notes-heading">
         <div class="section-heading notes-heading">
           <div>
-            <p class="section-index">02 / COLLECTION</p>
+            <p class="section-index">02 / Collection</p>
             <h2 id="notes-heading">Your notes</h2>
           </div>
           <button id="load-btn" type="button">Load notes</button>
         </div>
         <p id="status" class="status" role="status" aria-live="polite"></p>
-        <ul id="notes-list" aria-live="polite"></ul>
+        <ul id="notes-list"></ul>
       </section>
     </main>
 

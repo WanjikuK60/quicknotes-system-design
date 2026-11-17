@@ -29,52 +29,41 @@ average stored note of 2 KiB including row/index overhead.
 | --- | --- |
 | Reads per second (daily average) | `100,000 × 20 / 86,400 ≈ 23` reads/s; plan for a 10× peak of about 230 reads/s. |
 | Writes per second (daily average) | `100,000 × 2 / 86,400 ≈ 2.3` writes/s; plan for a 10× peak of about 23 writes/s. |
-| Storage per year | At 2 notes/user/day and 2 KiB/note: `1,000,000 × 2 × 365 × 2 KiB ≈ 1.36 TiB/year` of raw note data. Replicas, indexes, backups, and growth require additional capacity. |
+| Storage per year | If every write is a new note: `100,000 DAU × 2 notes × 365 days × 2 KiB ≈ 139 GiB/year` of raw note data. Edits overwrite existing rows, so this is an upper bound; replicas, backups, and growth require additional capacity. |
 
 These are planning assumptions, not measured traffic; production telemetry
 should revise them and account for actual retention, request mix, and note size.
 
 ## Architecture diagram
 
-```text
-                         +-------------------+
-                         |   DNS / managed   |
-                         |   health checks   |
-                         +---------+---------+
-                                   |
-Browser / mobile client ----------+
-          |                        v
-          +----------------> +----------+
-                             | CDN/WAF  |
-                             +----+-----+
-                                  |
-                             +----v------+
-                             | Load      |
-                             | balancer  |
-                             +--+-----+--+
-                                |     |
-                         +------v+   +v-------+
-                         | App 1 |   | App 2  |   ... more replicas
-                         +--+----+   +---+----+
-                            |            |
-             +--------------+------------+-----------------+
-             |                           |                 |
-        +----v-----+                +----v------+     +----v------+
-        | Cache    |                | Primary DB|     | Queue     |
-        | (HA)     |                +----+------+     | (durable) |
-        +----------+                     |            +----+------+
-                                    +----v------+          |
-                                    | Read      |      +---v------+
-                                    | replica   |      | Worker   |
-                                    +-----------+      +----------+
+```mermaid
+flowchart TD
+    Client["Browser / mobile client"] --> DNS["DNS + health checks"]
+    DNS --> CDN["CDN / WAF"]
+    CDN --> LB["Load balancer"]
+    LB --> Apps
+    subgraph Apps["Stateless app servers (2+ across zones)"]
+        App1["App server 1"]
+        App2["App server 2"]
+    end
+    Apps --> Cache[("Cache (HA)")]
+    Apps -- writes --> Primary[("Primary DB")]
+    Apps -- reads --> Replica[("Read replica")]
+    Primary -- replication --> Replica
+    Apps -- async jobs --> Queue[["Durable queue"]]
+    Queue --> Worker["Workers"]
 ```
+
+Clients reach the service through DNS, the CDN/WAF, and the load balancer.
+Stateless app servers read from the cache or the read replica, write to the
+primary database, and hand slow work (email, audit) to the queue for workers.
 
 ## Component responsibilities
 
 - **Client:** Provides the user interface and sends authenticated HTTPS requests without owning server-side authorization.
 - **DNS:** Resolves the service name and directs clients to the healthy regional entry point.
 - **CDN/WAF:** Caches static assets near users and filters common malicious or abusive traffic before it reaches the API.
-- **Load balancer:** Terminates/routs incoming API traffic across healthy app instances and removes failed instances from rotation.
+- **Load balancer:** Terminates TLS and routes incoming API traffic across healthy app instances and removes failed instances from rotation.
 - **App servers (at least two):** Run stateless API logic, validate inputs, authorize ownership, and scale out independently.
 - **Cache:** Reduces repeated hot reads and database load; cache keys include user scope, and writes invalidate or update affected entries.
 - **Primary database:** Commits authoritative note and tag changes with relational integrity and transaction guarantees.

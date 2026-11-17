@@ -12,7 +12,13 @@ let notes = [];
 let nextClientKey = 0;
 
 async function request(url, options = {}) {
-  const response = await fetch(url, options);
+  let response;
+  try {
+    response = await fetch(url, options);
+  } catch {
+    // fetch only rejects when the request never reached a server.
+    throw new Error("Check your internet connection and try again.");
+  }
   if (!response.ok) {
     throw new Error(`The server returned status ${response.status}.`);
   }
@@ -58,6 +64,7 @@ function renderNotes() {
     deleteButton.type = "button";
     deleteButton.dataset.clientKey = String(note.clientKey);
     deleteButton.textContent = "Delete";
+    deleteButton.setAttribute("aria-label", `Delete note: ${note.title}`);
 
     item.append(title, body, deleteButton);
     notesList.append(item);
@@ -90,12 +97,15 @@ loadButton.addEventListener("click", async () => {
   setButtonsDisabled(true);
   setStatus("Loading notes...", "loading");
   try {
-    notes = await getNotes();
+    // Keep notes created in this session: JSONPlaceholder doesn't store them,
+    // so reloading would otherwise make them disappear.
+    const createdHere = notes.filter((note) => note.createdHere);
+    notes = [...createdHere, ...(await getNotes())];
     renderNotes();
     if (notes.length === 0) {
       setStatus("No notes found. Create a note to get started.", "success");
     } else {
-      setStatus(`Loaded ${notes.length} notes from the server.`, "success");
+      setStatus(`Loaded ${notes.length - createdHere.length} notes from the server.`, "success");
     }
   } catch (error) {
     setStatus(`Could not load notes. ${error.message}`, "error");
@@ -130,6 +140,7 @@ noteForm.addEventListener("submit", async (event) => {
       title,
       body,
       clientKey: nextClientKey++,
+      createdHere: true,
     };
     notes.unshift(createdNote);
     renderNotes();
