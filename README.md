@@ -6,6 +6,8 @@ uses JSONPlaceholder as a practice API for loading, creating, and deleting
 notes; the design documents describe the production API, relational data
 model, and scalable service architecture.
 
+**Live client:** https://wanjikuk60.github.io/quicknotes-system-design/
+
 ## Run the API client
 
 1. Clone or download this repository.
@@ -19,9 +21,19 @@ note remains visible only until the page is reloaded.
 
 ## Design documents
 
-- [API design](docs/api-design.md)
-- [Data model](docs/data-model.md)
-- [Architecture](docs/architecture.md)
+- [API design](docs/api-design.md): REST endpoints, request and response examples, error format
+- [Data model](docs/data-model.md): PostgreSQL schema, indexes, example queries, SQL vs NoSQL
+- [Architecture](docs/architecture.md): requirements, capacity estimate for 1 million users, diagram, request flows, trade-offs
+
+## Project structure
+
+| Path | Purpose |
+| --- | --- |
+| `index.html` | API client page: create, load and delete notes |
+| `api.js` | Request handling, rendering, and loading/success/error states |
+| `style.css` | Layout and styles |
+| `favicon.svg` | Browser tab icon |
+| `docs/` | The three design documents |
 
 ## What I learned
 
